@@ -1,0 +1,47 @@
+
+
+# Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+*.env
+
+# IDE files
+.idea/
+.vscode/
+
+# Docker related files
+*.dockerignore
+
+# Pytest cache
+.cache/
+
+# FastAPI / Uvicorn specific
+*.log
+
+# .env files for sensitive data
+.env
+
+# FAISS index files
+faiss_index.bin
+
+# Document JSON files (Optional, if you want to ignore generated chunk files)
+document.json
+
+# Dependency directories
+node_modules/
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/

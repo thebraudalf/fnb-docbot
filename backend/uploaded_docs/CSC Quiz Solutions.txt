@@ -1,0 +1,20 @@
+
+Me: What is client? i wrote in 25-30 words
+
+PDF: A client is a computer program or device that requests services, resources, or data from a server within a network, initiating communication and receiving responses for various applications.
+
+Me: What is server? I wrote in 25-30 words
+
+PDF: A server is a computer program or hardware device that provides services, resources, or data to clients over a network. It manages requests, processes data, and delivers responses to ensure smooth communication.
+
+Me: What is print server? I wrote in 25-30 words
+
+PDF: A print server is a network device or software that manages print requests from clients, queues jobs, and directs them to appropriate printers, facilitating efficient printing within a network.
+
+Me: What is client stub? I wrote in 25-30 words
+
+PDF: A client stub is a proxy program that resides on the client side, responsible for marshaling request data and sending it to the server, enabling communication in client-server architecture.
+
+Me: What is MVC, RPC? I wrote in 25-30 words
+
+PDF: MVC (Model-View-Controller) is a design pattern separating data, user interface, and control logic for better organization. RPC (Remote Procedure Call) enables a program to invoke procedures on a remote server as if they were local.
