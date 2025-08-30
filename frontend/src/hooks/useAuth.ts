@@ -102,7 +102,7 @@ export const useAuthProvider = () => {
       
       toast({
         title: "Account created",
-        description: `Welcome to Kitchen Coach, ${name}!`,
+        description: `Welcome to F&B DocBot, ${name}!`,
       });
     } catch (error: any) {
       console.error('Registration error:', error);

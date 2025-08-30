@@ -327,7 +327,7 @@ const Index = () => {
           >
             <Menu className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-bold">Kitchen Coach</h1>
+          <h1 className="text-lg font-bold">F&B DocBot</h1>
           <Badge variant="secondary" className="text-xs">
             {userRole === 'manager' ? 'Manager' : 'Crew'}
           </Badge>
@@ -348,7 +348,7 @@ const Index = () => {
           {/* Desktop Sidebar Header */}
           <div className="hidden md:block p-6 border-b">
             <div className="flex items-center space-x-3">
-              <h1 className="text-xl font-bold">Kitchen Coach</h1>
+              <h1 className="text-xl font-bold">F&B DocBot</h1>
               <Badge variant="secondary">{userRole === 'manager' ? 'Manager' : 'Crew'}</Badge>
             </div>
           </div>
@@ -404,7 +404,7 @@ const Index = () => {
               </div>
               <div className="flex items-center justify-center pt-2 border-t border-border/50">
                 <Badge variant="secondary" className="text-xs">
-                  Kitchen Coach v2.1
+                  F&B DocBot v2.1
                 </Badge>
               </div>
             </div>
@@ -440,11 +440,11 @@ const Index = () => {
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">Kitchen Coach</span>
+                    <span className="font-semibold text-foreground">F&B DocBot</span>
                     <Badge variant="outline" className="text-xs">v2.1</Badge>
                   </div>
                   <span className="hidden md:block">•</span>
-                  <span>© 2024 Kitchen Coach. All rights reserved.</span>
+                  <span>© 2024 F&B DocBot. All rights reserved.</span>
                 </div>
               </div>
 

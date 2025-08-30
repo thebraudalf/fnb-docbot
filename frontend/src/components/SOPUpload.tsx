@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { SOPService, SOPDocument, SOPUploadData } from "@/lib/sopService";
 import { 
   Upload, 
   FileText, 
@@ -15,26 +17,10 @@ import {
   X,
   Calendar,
   User,
-  Building
+  Building,
+  Download
 } from "lucide-react";
 
-interface SOPDocument {
-  id: string;
-  title: string;
-  description: string;
-  version: string;
-  department: string;
-  category: string;
-  fileName: string;
-  fileSize: number;
-  uploadDate: Date;
-  lastModified: Date;
-  status: 'draft' | 'pending_approval' | 'approved' | 'archived';
-  uploadedBy: string;
-  approvedBy?: string;
-  effectiveDate?: Date;
-  reviewDate?: Date;
-}
 
 interface SOPUploadProps {
   userRole: 'crew' | 'manager';
@@ -42,25 +28,9 @@ interface SOPUploadProps {
 }
 
 export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
-  const [sopDocuments, setSOPDocuments] = useState<SOPDocument[]>([
-    {
-      id: "1",
-      title: "Food Safety Guidelines",
-      description: "Comprehensive food safety procedures for kitchen operations",
-      version: "2.1",
-      department: "Kitchen",
-      category: "Safety",
-      fileName: "food-safety-guidelines-v2.1.pdf",
-      fileSize: 2048576,
-      uploadDate: new Date("2024-03-15"),
-      lastModified: new Date("2024-03-15"),
-      status: "approved",
-      uploadedBy: "Manager Smith",
-      approvedBy: "Regional Manager",
-      effectiveDate: new Date("2024-03-20"),
-      reviewDate: new Date("2024-09-20")
-    }
-  ]);
+  const [sopDocuments, setSOPDocuments] = useState<SOPDocument[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadForm, setUploadForm] = useState({
@@ -104,37 +74,49 @@ export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
     }
   };
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = async (file: File) => {
     if (!file.type.includes('pdf') && !file.type.includes('document') && !file.type.includes('text')) {
-      alert('Please upload PDF, Word documents, or text files only.');
+      toast({
+        title: "Invalid file type",
+        description: "Please upload PDF, Word documents, or text files only.",
+        variant: "destructive",
+      });
       return;
     }
 
+
     setIsUploading(true);
     
-    // Simulate upload process
-    setTimeout(() => {
-      const newSOP: SOPDocument = {
-        id: Date.now().toString(),
-        title: uploadForm.title || file.name.replace(/\.[^/.]+$/, ""),
+    try {
+      const sopData: SOPUploadData = {
+        title: uploadForm.title,
         description: uploadForm.description,
-        version: uploadForm.version || "1.0",
+        version: uploadForm.version,
         department: uploadForm.department,
         category: uploadForm.category,
-        fileName: file.name,
-        fileSize: file.size,
-        uploadDate: new Date(),
-        lastModified: new Date(),
-        status: userRole === 'manager' ? 'approved' : 'pending_approval',
-        uploadedBy: userName,
-        effectiveDate: uploadForm.effectiveDate ? new Date(uploadForm.effectiveDate) : undefined,
-        reviewDate: uploadForm.reviewDate ? new Date(uploadForm.reviewDate) : undefined
+        effectiveDate: uploadForm.effectiveDate,
+        reviewDate: uploadForm.reviewDate,
       };
 
+      const newSOP = await SOPService.uploadSOP(file, sopData, userName, userRole);
+      
       setSOPDocuments(prev => [newSOP, ...prev]);
-      setIsUploading(false);
       resetForm();
-    }, 2000);
+      
+      toast({
+        title: "SOP uploaded successfully",
+        description: `${newSOP.title} has been uploaded and is ${newSOP.status === 'approved' ? 'approved' : 'pending approval'}.`,
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload SOP document.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const resetForm = () => {
@@ -149,16 +131,85 @@ export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
     });
   };
 
-  const updateSOPStatus = (id: string, status: SOPDocument['status']) => {
-    setSOPDocuments(prev => prev.map(sop => 
-      sop.id === id 
-        ? { ...sop, status, approvedBy: status === 'approved' ? userName : undefined }
-        : sop
-    ));
+  // Load SOPs from Appwrite on component mount
+  useEffect(() => {
+    const loadSOPs = async () => {
+      try {
+        const sops = await SOPService.getSOPDocuments();
+        setSOPDocuments(sops);
+      } catch (error) {
+        console.error('Error loading SOPs:', error);
+        // Silently handle the error without showing toast
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSOPs();
+  }, [toast]);
+
+  const updateSOPStatus = async (id: string, status: SOPDocument['status']) => {
+    try {
+      await SOPService.updateSOPStatus(id, status, userName);
+      setSOPDocuments(prev => prev.map(sop => 
+        sop.id === id 
+          ? { ...sop, status, approvedBy: status === 'approved' ? userName : undefined }
+          : sop
+      ));
+      
+      toast({
+        title: "Status updated",
+        description: `SOP has been ${status === 'approved' ? 'approved' : 'rejected'}.`,
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update SOP status.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteSOP = (id: string) => {
-    setSOPDocuments(prev => prev.filter(sop => sop.id !== id));
+  const deleteSOP = async (id: string) => {
+    const sop = sopDocuments.find(s => s.id === id);
+    if (!sop) return;
+
+    try {
+      await SOPService.deleteSOPDocument(id);
+      setSOPDocuments(prev => prev.filter(sop => sop.id !== id));
+      
+      toast({
+        title: "SOP deleted",
+        description: `${sop.title} has been deleted successfully.`,
+      });
+    } catch (error) {
+      console.error('Error deleting SOP:', error);
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete SOP document.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadSOP = (fileName: string) => {
+    try {
+      const downloadUrl = SOPService.getFileDownloadURL(fileName);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: "Download failed",
+        description: "Failed to download SOP document.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -181,6 +232,15 @@ export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <span className="ml-3 text-lg">Loading SOPs...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -201,7 +261,7 @@ export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
           {/* SOP Metadata Form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="title">SOP Title *</Label>
+              <Label htmlFor="title">SOP Title</Label>
               <Input
                 id="title"
                 placeholder="e.g., Kitchen Safety Procedures"
@@ -211,7 +271,7 @@ export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="version">Version *</Label>
+              <Label htmlFor="version">Version</Label>
               <Input
                 id="version"
                 placeholder="e.g., 1.0, 2.1"
@@ -221,7 +281,7 @@ export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="department">Department *</Label>
+              <Label htmlFor="department">Department</Label>
               <Select value={uploadForm.department} onValueChange={(value) => setUploadForm(prev => ({ ...prev, department: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select department" />
@@ -235,7 +295,7 @@ export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
+              <Label htmlFor="category">Category</Label>
               <Select value={uploadForm.category} onValueChange={(value) => setUploadForm(prev => ({ ...prev, category: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -380,7 +440,12 @@ export const SOPUpload = ({ userRole, userName }: SOPUploadProps) => {
                     </>
                   )}
                   
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => downloadSOP(sop.fileName)}
+                  >
+                    <Download className="w-4 h-4 mr-1" />
                     Download
                   </Button>
                   

@@ -109,16 +109,47 @@ export const DocBot = ({ sopVersion = "v1.2" }: DocBotProps) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const question = input;
     setInput('');
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const inputLower = input.toLowerCase();
-      let response: Message;
+    try {
+      // Call external query API
+      const formData = new URLSearchParams();
+      formData.append('question', question);
+
+      const response = await fetch('https://hvjbrvdc-8000.inc1.devtunnels.ms/query', {
+        method: 'POST',
+        headers: {
+          'accept': 'text/plain',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Query failed: ${response.statusText}`);
+      }
+
+      const botResponse = await response.text();
+
+      const botMessage: Message = {
+        id: Date.now().toString() + '1',
+        type: 'bot',
+        content: botResponse,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Query error:', error);
+      
+      // Fallback to mock responses if API fails
+      const inputLower = question.toLowerCase();
+      let fallbackResponse: Message;
 
       if (inputLower.includes('fryer') || inputLower.includes('oil') || inputLower.includes('drain')) {
-        response = {
+        fallbackResponse = {
           id: Date.now().toString() + '1',
           type: 'bot',
           content: mockResponses.fryer.content,
@@ -126,7 +157,7 @@ export const DocBot = ({ sopVersion = "v1.2" }: DocBotProps) => {
           timestamp: new Date()
         };
       } else if (inputLower.includes('allergen') || inputLower.includes('cross-contact') || inputLower.includes('allergy')) {
-        response = {
+        fallbackResponse = {
           id: Date.now().toString() + '2',
           type: 'bot',
           content: mockResponses.allergen.content,
@@ -134,17 +165,18 @@ export const DocBot = ({ sopVersion = "v1.2" }: DocBotProps) => {
           timestamp: new Date()
         };
       } else {
-        response = {
+        fallbackResponse = {
           id: Date.now().toString() + '3',
           type: 'bot',
-          content: "I don't have specific information about that in our current SOPs. Please ask about deep fryer procedures, allergen management, equipment maintenance, or safety protocols. If you need information not covered in our SOPs, please contact your manager.",
+          content: "I'm having trouble connecting to the knowledge base. Please try again or contact your manager for assistance.",
           timestamp: new Date()
         };
       }
 
-      setMessages(prev => [...prev, response]);
+      setMessages(prev => [...prev, fallbackResponse]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
